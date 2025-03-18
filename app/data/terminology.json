@@ -1,0 +1,140 @@
+[
+  {
+    "id": 3,
+    "created_at": "2025-03-18T14:29:16.884332",
+    "updated_at": "2025-03-18T14:29:16.884332",
+    "source_term": "微结构",
+    "target_term": "microstructure",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 4,
+    "created_at": "2025-03-18T14:29:16.907735",
+    "updated_at": "2025-03-18T14:29:16.907735",
+    "source_term": "力学性能",
+    "target_term": "mechanical properties",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 5,
+    "created_at": "2025-03-18T14:29:16.933919",
+    "updated_at": "2025-03-18T14:29:16.933919",
+    "source_term": "断裂韧性",
+    "target_term": "fracture toughness",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 6,
+    "created_at": "2025-03-18T14:29:16.960243",
+    "updated_at": "2025-03-18T14:29:16.960243",
+    "source_term": "位错",
+    "target_term": "dislocation",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 7,
+    "created_at": "2025-03-18T14:29:16.983490",
+    "updated_at": "2025-03-18T14:29:16.983490",
+    "source_term": "晶界",
+    "target_term": "grain boundary",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 8,
+    "created_at": "2025-03-18T14:29:17.007873",
+    "updated_at": "2025-03-18T14:29:17.007873",
+    "source_term": "相变",
+    "target_term": "phase transformation",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 9,
+    "created_at": "2025-03-18T14:29:17.033277",
+    "updated_at": "2025-03-18T14:29:17.033277",
+    "source_term": "热处理",
+    "target_term": "heat treatment",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 10,
+    "created_at": "2025-03-18T14:29:17.059304",
+    "updated_at": "2025-03-18T14:29:17.059304",
+    "source_term": "合金",
+    "target_term": "alloy",
+    "domain": "general",
+    "source_language": "zh",
+    "target_language": "en",
+    "definition": null
+  },
+  {
+    "id": 11,
+    "created_at": "2025-03-18T15:08:46.712266",
+    "updated_at": "2025-03-18T15:08:46.712266",
+    "source_term": "材料",
+    "target_term": "material",
+    "source_lang": "zh",
+    "target_lang": "en",
+    "domain": "general"
+  },
+  {
+    "id": 12,
+    "created_at": "2025-03-18T15:08:46.722495",
+    "updated_at": "2025-03-18T15:08:46.722495",
+    "source_term": "翻译",
+    "target_term": "translation",
+    "source_lang": "zh",
+    "target_lang": "en",
+    "domain": "general"
+  },
+  {
+    "id": 13,
+    "created_at": "2025-03-18T15:08:46.733578",
+    "updated_at": "2025-03-18T15:08:46.733578",
+    "source_term": "术语库",
+    "target_term": "terminology database",
+    "source_lang": "zh",
+    "target_lang": "en",
+    "domain": "general"
+  },
+  {
+    "id": 14,
+    "created_at": "2025-03-18T15:08:46.745509",
+    "updated_at": "2025-03-18T15:08:46.745509",
+    "source_term": "评估",
+    "target_term": "evaluation",
+    "source_lang": "zh",
+    "target_lang": "en",
+    "domain": "general"
+  },
+  {
+    "id": 15,
+    "created_at": "2025-03-18T15:08:46.756748",
+    "updated_at": "2025-03-18T15:08:46.756748",
+    "source_term": "质量",
+    "target_term": "quality",
+    "source_lang": "zh",
+    "target_lang": "en",
+    "domain": "general"
+  }
+]
