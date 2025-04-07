@@ -1,0 +1,47 @@
+[
+  {
+    "term_id": "1",
+    "source_term": "材料科学",
+    "target_term": "materials science",
+    "domain": "materials_science",
+    "definition": "研究材料结构、性质、加工和性能的科学",
+    "source_language": "zh",
+    "target_language": "en"
+  },
+  {
+    "term_id": "2",
+    "source_term": "纳米材料",
+    "target_term": "nanomaterials",
+    "domain": "materials_science",
+    "definition": "至少一个维度在1-100纳米范围内的材料",
+    "source_language": "zh",
+    "target_language": "en"
+  },
+  {
+    "term_id": "3",
+    "source_term": "复合材料",
+    "target_term": "composite materials",
+    "domain": "materials_science",
+    "definition": "由两种或两种以上不同性质的材料组成的材料",
+    "source_language": "zh",
+    "target_language": "en"
+  },
+  {
+    "term_id": "4",
+    "source_term": "晶格常数",
+    "target_term": "lattice constant",
+    "domain": "materials_science",
+    "definition": "晶体结构中单位晶胞的边长",
+    "source_language": "zh",
+    "target_language": "en"
+  },
+  {
+    "term_id": "5",
+    "source_term": "热导率",
+    "target_term": "thermal conductivity",
+    "domain": "materials_science",
+    "definition": "材料传导热量的能力",
+    "source_language": "zh",
+    "target_language": "en"
+  }
+]

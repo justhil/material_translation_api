@@ -1,0 +1,878 @@
+// API 基础URL
+// 使用相对路径，自动适应当前主机和端口
+const API_BASE_URL = '/api';
+
+// AbortSignal.timeout polyfill，用于支持旧版浏览器
+if (!AbortSignal.timeout) {
+    AbortSignal.timeout = function(ms) {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), ms);
+        return controller.signal;
+    };
+}
+
+// DOM 元素
+const initDataBtn = document.getElementById('init-data-btn');
+const statusValue = document.getElementById('status-value');
+const translateBtn = document.getElementById('translate-btn');
+const evaluateBtn = document.getElementById('evaluate-btn');
+const loadTerminologyBtn = document.getElementById('load-terminology-main-btn');
+const loadTerminologyInnerBtn = document.getElementById('load-terminology-inner-btn');
+const exportTerminologyBtn = document.getElementById('export-terminology-main-btn');
+const exportTerminologyInnerBtn = document.getElementById('export-terminology-inner-btn');
+const loadingOverlay = document.getElementById('loading-overlay');
+const loadingMessage = document.getElementById('loading-message');
+const viewCriteriaBtn = document.getElementById('view-criteria-btn');
+const criteriaModal = document.getElementById('criteria-modal');
+const criteriaContent = document.getElementById('criteria-content');
+
+// API配置相关元素
+const customApiEnabledCheckbox = document.getElementById('custom-api-enabled');
+const apiConfigForm = document.getElementById('api-config-form');
+const apiKeyInput = document.getElementById('api-key');
+const apiBaseUrlInput = document.getElementById('api-base-url');
+const apiVersionInput = document.getElementById('api-version');
+const saveApiConfigBtn = document.getElementById('save-api-config');
+const fetchModelsBtn = document.getElementById('fetch-models');
+const modelSelect = document.getElementById('model-select');
+
+// 参考文本相关元素
+const referenceSelect = document.getElementById('reference-select');
+const loadReferenceBtn = document.getElementById('load-reference');
+const uploadReferenceBtn = document.getElementById('upload-reference-btn');
+const uploadForm = document.getElementById('upload-form');
+const referenceFileInput = document.getElementById('reference-file');
+const refSourceLangSelect = document.getElementById('ref-source-lang');
+const refTargetLangSelect = document.getElementById('ref-target-lang');
+const submitReferenceFileBtn = document.getElementById('submit-reference-file');
+const cancelUploadBtn = document.getElementById('cancel-upload');
+const referenceText = document.getElementById('reference-text');
+
+// 参考文本来源选项
+const referenceFileOption = document.getElementById('reference-file-option');
+const referenceManualOption = document.getElementById('reference-manual-option');
+
+// 术语管理相关元素
+const terminologyModeSelect = document.getElementById('terminology-mode');
+const applyTermModeBtn = document.getElementById('apply-term-button');
+
+// 查看评分标准 (为了兼容性，viewScoringCriteria是showCriteria的别名)
+const viewScoringCriteria = showCriteria;
+
+// 页面加载后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('页面已加载，初始化中...');
+    
+    // 初始化API状态检查
+    checkApiStatus();
+    
+    // 设置术语库相关事件监听器
+    document.getElementById('load-terminology-main-btn').addEventListener('click', loadTerminology);
+    document.getElementById('export-terminology-main-btn').addEventListener('click', exportTerminology);
+    document.getElementById('init-data-btn').addEventListener('click', initializeData);
+    document.getElementById('add-term-btn').addEventListener('click', addTerminology);
+    
+    // 初始加载术语库
+    setTimeout(loadTerminology, 1000);
+    
+    console.log('初始化完成');
+});
+
+// API状态检查
+async function checkApiStatus() {
+    console.log('检查API状态...');
+    try {
+        const response = await fetch(`${API_BASE_URL}/health`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            timeout: 3000
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('API状态:', data);
+            setStatusIndicator(true, '连接正常');
+        } else {
+            console.error('API响应异常:', response.status);
+            setStatusIndicator(false, `API响应异常: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('API连接失败:', error);
+        setStatusIndicator(false, '无法连接到API服务器');
+    }
+}
+
+// 设置状态指示器
+function setStatusIndicator(isConnected, message) {
+    const statusValue = document.getElementById('status-value');
+    if (!statusValue) return;
+    
+    statusValue.textContent = message;
+    
+    // 移除所有状态类
+    statusValue.classList.remove('status-success', 'status-error', 'status-warning');
+    
+    // 添加相应状态类
+    if (isConnected) {
+        statusValue.classList.add('status-success');
+    } else {
+        statusValue.classList.add('status-error');
+    }
+}
+
+// 显示加载中
+function showLoading() {
+    console.log('显示加载中...');
+    // 可以在此添加加载动画逻辑
+}
+
+// 隐藏加载中
+function hideLoading() {
+    console.log('隐藏加载中...');
+    // 可以在此移除加载动画逻辑
+}
+
+// 显示消息
+function showMessage(message, type = 'info') {
+    console.log(`显示消息 [${type}]:`, message);
+    alert(message); // 简单实现，可以改为更友好的UI提示
+}
+
+// API工具类
+const TerminologyAPI = {
+    // 检查API服务器健康状态
+    async checkHealth() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                timeout: 3000
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API服务器响应异常: ${response.status}`);
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('API服务器健康检查失败:', error);
+            throw new Error('无法连接到API服务器');
+        }
+    },
+    
+    // 添加术语
+    async addTerminology(sourceTerm, targetTerm, sourceLang, targetLang, definition = '') {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/add`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source_term: sourceTerm,
+                    target_term: targetTerm,
+                    source_language: sourceLang,
+                    target_language: targetLang,
+                    definition: definition
+                })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('添加术语失败:', error);
+            throw new Error(`添加术语失败: ${error.message}`);
+        }
+    },
+    
+    // 获取术语库
+    async getTerminology(sourceLang, targetLang) {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/list?source_language=${sourceLang}&target_language=${targetLang}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('获取术语库失败:', error);
+            throw new Error(`获取术语库失败: ${error.message}`);
+        }
+    },
+    
+    // 更新术语
+    async updateTerminology(termId, sourceTerm, targetTerm, sourceLang, targetLang, definition = '') {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            // 准备更新数据
+            const updateData = {
+                source_term: sourceTerm,
+                target_term: targetTerm,
+                source_language: sourceLang,
+                target_language: targetLang,
+            };
+            
+            // 仅当定义不为空时添加
+            if (definition) {
+                updateData.definition = definition;
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/update/${termId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('更新术语失败:', error);
+            throw new Error(`更新术语失败: ${error.message}`);
+        }
+    },
+    
+    // 删除术语
+    async deleteTerminology(termId) {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/delete/${termId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('删除术语失败:', error);
+            throw new Error(`删除术语失败: ${error.message}`);
+        }
+    },
+    
+    // 导出术语库
+    async exportTerminology(sourceLang, targetLang) {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/export?source_language=${sourceLang}&target_language=${targetLang}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('导出术语库失败:', error);
+            throw new Error(`导出术语库失败: ${error.message}`);
+        }
+    },
+    
+    // 导入术语库
+    async importTerminology(terms) {
+        try {
+            // 检查API服务器健康状态
+            await this.checkHealth();
+            
+            const response = await fetch(`${API_BASE_URL}/terminology/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ terms })
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+                throw new Error(errorData.message || `API错误: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('导入术语库失败:', error);
+            throw new Error(`导入术语库失败: ${error.message}`);
+        }
+    }
+};
+
+// 页面加载时执行的初始化函数
+document.addEventListener('DOMContentLoaded', async () => {
+    // 初始化UI元素
+    initializeUI();
+    
+    // 检查API状态
+    try {
+        await checkApiStatus();
+    } catch (error) {
+        console.error('API状态检查失败:', error);
+        setStatusIndicator('错误', 'error');
+    }
+    
+    // 绑定事件监听器
+    bindEventListeners();
+    
+    // 初始化语言选择
+    initializeLanguageAndDomain();
+});
+
+function initializeUI() {
+    // 隐藏加载指示器
+    hideLoading();
+    
+    // 隐藏评估结果区域
+    const evaluationResult = document.querySelector('.evaluation-result');
+    if (evaluationResult) {
+        evaluationResult.style.display = 'none';
+    }
+    
+    // 隐藏提取的术语区域
+    const extractedTermsContainer = document.getElementById('extracted-terms-container');
+    if (extractedTermsContainer) {
+        extractedTermsContainer.style.display = 'none';
+    }
+    
+    // 隐藏术语库容器，等待加载
+    const terminologyContainer = document.getElementById('terminology-container');
+    if (terminologyContainer) {
+        terminologyContainer.style.display = 'none';
+    }
+}
+
+function bindEventListeners() {
+    // 翻译和评估按钮
+    const translateBtn = document.getElementById('translate-btn');
+    if (translateBtn) translateBtn.addEventListener('click', translateText);
+    
+    const evaluateBtn = document.getElementById('evaluate-btn');
+    if (evaluateBtn) evaluateBtn.addEventListener('click', evaluateTranslation);
+    
+    // 术语相关按钮
+    const loadTerminologyMainBtn = document.getElementById('load-terminology-main-btn');
+    if (loadTerminologyMainBtn) loadTerminologyMainBtn.addEventListener('click', loadTerminology);
+    
+    const loadTerminologyInnerBtn = document.getElementById('load-terminology-inner-btn');
+    if (loadTerminologyInnerBtn) loadTerminologyInnerBtn.addEventListener('click', loadTerminology);
+    
+    const addTermBtn = document.getElementById('add-term-btn');
+    if (addTermBtn) addTermBtn.addEventListener('click', addTerminology);
+    
+    const exportTerminologyMainBtn = document.getElementById('export-terminology-main-btn');
+    if (exportTerminologyMainBtn) exportTerminologyMainBtn.addEventListener('click', exportTerminology);
+    
+    const exportTerminologyInnerBtn = document.getElementById('export-terminology-inner-btn');
+    if (exportTerminologyInnerBtn) exportTerminologyInnerBtn.addEventListener('click', exportTerminology);
+    
+    // 初始化数据按钮内联版本
+    const initDataBtnInline = document.getElementById('init-data-btn-inline');
+    if (initDataBtnInline) initDataBtnInline.addEventListener('click', initializeData);
+    
+    // 清除术语结果按钮
+    const clearTermsButton = document.getElementById('clear-terms-button');
+    if (clearTermsButton) clearTermsButton.addEventListener('click', clearExtractedTermsResults);
+    
+    // 应用术语模式按钮
+    const applyTermModeBtn = document.getElementById('apply-term-button');
+    if (applyTermModeBtn) applyTermModeBtn.addEventListener('click', applyTerminologyMode);
+    
+    // 显示评分标准按钮
+    const viewCriteriaBtn = document.getElementById('view-criteria-btn');
+    if (viewCriteriaBtn) viewCriteriaBtn.addEventListener('click', showCriteria);
+    
+    // 参考文本相关按钮
+    const loadReferenceBtn = document.getElementById('load-reference');
+    if (loadReferenceBtn) loadReferenceBtn.addEventListener('click', loadSelectedReference);
+    
+    const uploadReferenceBtn = document.getElementById('upload-reference-btn');
+    if (uploadReferenceBtn) uploadReferenceBtn.addEventListener('click', showUploadForm);
+    
+    const submitReferenceFileBtn = document.getElementById('submit-reference-file');
+    if (submitReferenceFileBtn) submitReferenceFileBtn.addEventListener('click', uploadReferenceFile);
+    
+    const cancelUploadBtn = document.getElementById('cancel-upload');
+    if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', hideUploadForm);
+    
+    // 参考文本来源选择
+    const referenceFileOption = document.getElementById('reference-file-option');
+    const referenceManualOption = document.getElementById('reference-manual-option');
+    
+    if (referenceFileOption) {
+        referenceFileOption.addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('reference-text').readOnly = true;
+            }
+        });
+    }
+    
+    if (referenceManualOption) {
+        referenceManualOption.addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('reference-text').readOnly = false;
+            }
+        });
+    }
+    
+    // 初始化API配置相关事件
+    initializeApiConfigEvents();
+    
+    // 语言选择变化时更新术语库
+    const sourceLangSelect = document.getElementById('source-lang');
+    const targetLangSelect = document.getElementById('target-lang');
+    
+    if (sourceLangSelect) {
+        sourceLangSelect.addEventListener('change', updateTerminologyForCurrentLanguage);
+    }
+    
+    if (targetLangSelect) {
+        targetLangSelect.addEventListener('change', updateTerminologyForCurrentLanguage);
+    }
+    
+    // 关闭弹窗的事件
+    const closeButtons = document.querySelectorAll('.close-btn');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) modal.style.display = 'none';
+        });
+    });
+    
+    // 在弹窗外点击关闭弹窗
+    window.addEventListener('click', function(event) {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+}
+
+function updateTerminologyForCurrentLanguage() {
+    const sourceLang = document.getElementById('source-lang').value;
+    const targetLang = document.getElementById('target-lang').value;
+    
+    // 加载术语库
+    loadTerminologyFromDB(sourceLang, targetLang);
+}
+
+function initializeLanguageAndDomain() {
+    // 设置默认值
+    document.getElementById('source-lang').value = 'en';
+    document.getElementById('target-lang').value = 'zh';
+    
+    // 加载对应的术语库
+    updateTerminologyForCurrentLanguage();
+}
+
+function initializeApiConfigEvents() {
+    // API配置复选框变化事件
+    if (customApiEnabledCheckbox) {
+        customApiEnabledCheckbox.addEventListener('change', toggleApiConfigForm);
+    }
+    
+    // 保存API配置按钮点击事件
+    if (saveApiConfigBtn) {
+        saveApiConfigBtn.addEventListener('click', saveApiConfig);
+    }
+    
+    // 获取可用模型按钮点击事件
+    if (fetchModelsBtn) {
+        fetchModelsBtn.addEventListener('click', fetchAvailableModels);
+    }
+}
+
+async function batchSaveTerminology(terminologyArray) {
+    if (!terminologyArray || terminologyArray.length === 0) {
+        console.warn('没有术语需要保存');
+        return;
+    }
+    
+    console.log(`准备批量保存${terminologyArray.length}个术语`);
+    
+    try {
+        showLoading('批量保存术语中...');
+        
+        // 使用API批量保存术语
+        const result = await TerminologyAPI.batchSave(terminologyArray);
+        alert(`成功保存了${result.count || terminologyArray.length}个术语`);
+        
+        // 刷新术语库显示
+        const sourceLang = document.getElementById('source-lang').value;
+        const targetLang = document.getElementById('target-lang').value;
+        await loadTerminologyFromDB(sourceLang, targetLang);
+    } catch (error) {
+        console.error('批量保存术语失败:', error);
+        alert('批量保存术语失败: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * 导出术语库
+ */
+async function exportTerminology() {
+    try {
+        // 获取源语言和目标语言
+        const sourceLang = document.getElementById('source-lang').value;
+        const targetLang = document.getElementById('target-lang').value;
+        
+        showLoading();
+        
+        // 调用API导出术语库
+        const result = await TerminologyAPI.exportTerminology(sourceLang, targetLang);
+        
+        // 生成CSV内容
+        let csvContent = 'source_term,target_term,definition\n';
+        result.data.forEach(term => {
+            const definition = term.definition ? term.definition.replace(/"/g, '""') : '';
+            csvContent += `"${term.source_term.replace(/"/g, '""')}","${term.target_term.replace(/"/g, '""')}","${definition}"\n`;
+        });
+        
+        // 创建下载链接
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `terminology_${sourceLang}_${targetLang}.csv`);
+        link.style.display = 'none';
+        
+        // 添加到文档并触发点击
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        showMessage(`成功导出${result.data.length}个术语`, 'success');
+    } catch (error) {
+        console.error('导出术语库失败:', error);
+        showMessage(`导出术语库失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 显示上传表单
+function showUploadForm() {
+    if (uploadForm) {
+        uploadForm.style.display = 'block';
+    }
+}
+
+// 隐藏上传表单
+function hideUploadForm() {
+    if (uploadForm) {
+        uploadForm.style.display = 'none';
+    }
+}
+
+// 初始化数据
+async function initializeData() {
+    try {
+        showLoading('正在初始化示例数据...');
+        
+        // 获取源语言和目标语言
+        const sourceLang = document.getElementById('source-lang').value;
+        const targetLang = document.getElementById('target-lang').value;
+        
+        // 示例术语
+        const sampleTerms = [
+            { source_term: "材料科学", target_term: "Materials Science", definition: "研究材料的组成、结构和性能的科学" },
+            { source_term: "纳米材料", target_term: "Nanomaterials", definition: "尺寸在纳米级别的材料" },
+            { source_term: "聚合物", target_term: "Polymer", definition: "由许多重复结构单元组成的大分子" },
+            { source_term: "复合材料", target_term: "Composite Materials", definition: "由两种或更多不同材料组合而成的材料" },
+            { source_term: "晶体结构", target_term: "Crystal Structure", definition: "原子在晶体中的周期性排列" },
+            { source_term: "陶瓷", target_term: "Ceramics", definition: "无机非金属固体材料" },
+            { source_term: "相变", target_term: "Phase Transition", definition: "材料从一种相态转变为另一种相态的过程" },
+            { source_term: "合金", target_term: "Alloy", definition: "金属与其他元素的混合物" },
+            { source_term: "半导体", target_term: "Semiconductor", definition: "导电性介于导体和绝缘体之间的材料" },
+            { source_term: "超导体", target_term: "Superconductor", definition: "在特定条件下电阻为零的材料" }
+        ];
+        
+        // 调用API导入示例术语
+        await TerminologyAPI.importTerminology(sampleTerms.map(term => ({
+            source_term: term.source_term,
+            target_term: term.target_term,
+            source_language: sourceLang,
+            target_language: targetLang,
+            definition: term.definition
+        })));
+        
+        showMessage(`成功初始化${sampleTerms.length}个示例术语`, 'success');
+        
+        // 重新加载术语库
+        await loadTerminology();
+    } catch (error) {
+        console.error('初始化示例数据失败:', error);
+        showMessage(`初始化示例数据失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 加载术语库
+async function loadTerminology() {
+    // 获取源语言和目标语言
+    const sourceLang = document.getElementById('source-lang').value;
+    const targetLang = document.getElementById('target-lang').value;
+    
+    console.log(`加载术语库：${sourceLang} -> ${targetLang}`);
+    
+    // 调用API加载术语库
+    await loadTerminologyFromDB(sourceLang, targetLang);
+}
+
+// 从数据库加载术语库
+async function loadTerminologyFromDB(sourceLang, targetLang) {
+    try {
+        showLoading();
+        
+        // 清空现有内容
+        const terminologyBody = document.getElementById('terminology-body');
+        if (terminologyBody) {
+            terminologyBody.innerHTML = '';
+        }
+        
+        // 调用API获取术语库
+        const result = await TerminologyAPI.getTerminology(sourceLang, targetLang);
+        console.log('获取术语库结果:', result);
+        
+        // 显示术语容器
+        const terminologyContainer = document.getElementById('terminology-container');
+        if (terminologyContainer) {
+            terminologyContainer.style.display = 'block';
+        }
+        
+        // 检查是否有术语数据
+        if (!result.data || result.data.length === 0) {
+            // 显示空状态
+            terminologyBody.innerHTML = `
+                <tr class="empty-state">
+                    <td colspan="4">
+                        <div class="empty-message">
+                            <p>暂无术语数据</p>
+                            <button id="init-data-btn-inline" class="btn btn-primary" onclick="initializeData()">
+                                初始化示例数据
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // 填充术语表格
+        result.data.forEach(term => {
+            const row = document.createElement('tr');
+            row.dataset.termId = term.id;
+            
+            row.innerHTML = `
+                <td class="source-term">${term.source_term}</td>
+                <td class="target-term">${term.target_term}</td>
+                <td class="definition">${term.definition || ''}</td>
+                <td class="actions">
+                    <button class="btn btn-sm btn-edit" onclick="editTerm(${term.id})">编辑</button>
+                    <button class="btn btn-sm btn-delete" onclick="deleteTerm(${term.id})">删除</button>
+                </td>
+            `;
+            
+            terminologyBody.appendChild(row);
+        });
+        
+        showMessage(`成功加载${result.data.length}个术语`, 'success');
+    } catch (error) {
+        console.error('加载术语库失败:', error);
+        
+        // 显示错误状态
+        const terminologyBody = document.getElementById('terminology-body');
+        if (terminologyBody) {
+            terminologyBody.innerHTML = `
+                <tr class="error-state">
+                    <td colspan="4">
+                        <div class="error-message">
+                            <p>加载术语库失败: ${error.message}</p>
+                            <button class="btn btn-primary" onclick="loadTerminology()">
+                                重试
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        showMessage(`加载术语库失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 编辑术语
+async function editTerm(termId) {
+    try {
+        // 获取当前术语信息
+        const row = document.querySelector(`tr[data-term-id="${termId}"]`);
+        if (!row) {
+            throw new Error('找不到要编辑的术语');
+        }
+        
+        const sourceTerm = row.querySelector('.source-term').textContent;
+        const targetTerm = row.querySelector('.target-term').textContent;
+        const definition = row.querySelector('.definition').textContent;
+        
+        // 请求用户输入新值
+        const newTargetTerm = prompt('请输入新的目标术语:', targetTerm);
+        if (!newTargetTerm || newTargetTerm.trim() === '') {
+            alert('目标术语不能为空');
+            return;
+        }
+        
+        const newDefinition = prompt('请输入新的定义 (可选):', definition);
+        
+        // 获取语言设置
+        const sourceLang = document.getElementById('source-lang').value;
+        const targetLang = document.getElementById('target-lang').value;
+        
+        showLoading();
+        
+        // 调用API更新术语
+        await TerminologyAPI.updateTerminology(
+            termId,
+            sourceTerm,
+            newTargetTerm.trim(),
+            sourceLang,
+            targetLang,
+            newDefinition ? newDefinition.trim() : ''
+        );
+        
+        showMessage('更新术语成功', 'success');
+        
+        // 重新加载术语库
+        await loadTerminology();
+    } catch (error) {
+        console.error('编辑术语失败:', error);
+        showMessage(`编辑术语失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 删除术语
+async function deleteTerm(termId) {
+    try {
+        // 获取当前术语信息
+        const row = document.querySelector(`tr[data-term-id="${termId}"]`);
+        if (!row) {
+            throw new Error('找不到要删除的术语');
+        }
+        
+        const sourceTerm = row.querySelector('.source-term').textContent;
+        
+        // 确认删除
+        if (!confirm(`确定要删除术语 "${sourceTerm}" 吗?`)) {
+            return;
+        }
+        
+        showLoading();
+        
+        // 调用API删除术语
+        await TerminologyAPI.deleteTerminology(termId);
+        
+        showMessage('删除术语成功', 'success');
+        
+        // 重新加载术语库
+        await loadTerminology();
+    } catch (error) {
+        console.error('删除术语失败:', error);
+        showMessage(`删除术语失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 添加术语
+async function addTerminology() {
+    try {
+        // 请求用户输入
+        const sourceTerm = prompt('请输入源术语:');
+        if (!sourceTerm || sourceTerm.trim() === '') {
+            alert('源术语不能为空');
+            return;
+        }
+        
+        const targetTerm = prompt('请输入目标术语:');
+        if (!targetTerm || targetTerm.trim() === '') {
+            alert('目标术语不能为空');
+            return;
+        }
+        
+        const definition = prompt('请输入定义 (可选):');
+        
+        // 获取语言设置
+        const sourceLang = document.getElementById('source-lang').value;
+        const targetLang = document.getElementById('target-lang').value;
+        
+        showLoading();
+        
+        // 调用API添加术语
+        await TerminologyAPI.addTerminology(
+            sourceTerm.trim(),
+            targetTerm.trim(),
+            sourceLang,
+            targetLang,
+            definition ? definition.trim() : ''
+        );
+        
+        showMessage('添加术语成功', 'success');
+        
+        // 重新加载术语库
+        await loadTerminology();
+    } catch (error) {
+        console.error('添加术语失败:', error);
+        showMessage(`添加术语失败: ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+} 

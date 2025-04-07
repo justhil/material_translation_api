@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料领域翻译质量评估系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>材料领域翻译质量评估系统</h1>
+        <div class="api-status">
+            <span>API状态:</span> 
+            <span id="status-value">检查中...</span>
+        </div>
+    </header>
+    
+    <main>
+        <!-- API配置部分 -->
+        <section class="card">
+            <h2>模型选择</h2>
+            <div class="form-row">
+                <div class="col-md-8">
+                    <label for="model-select">翻译模型:</label>
+                    <select id="model-select" class="form-control">
+                        <option value="deepseek-api">DeepSeek API (默认)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>&nbsp;</label>
+                    <button id="fetch-models" class="btn btn-primary w-100">获取可用模型</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 翻译与评估部分 -->
+        <section class="card">
+            <h2>翻译文本</h2>
+            
+            <div class="form-row">
+                <div class="half">
+                    <label for="source-lang">源语言:</label>
+                    <select id="source-lang" class="form-control">
+                        <option value="zh">中文</option>
+                        <option value="en">英文</option>
+                    </select>
+                </div>
+                <div class="half">
+                    <label for="target-lang">目标语言:</label>
+                    <select id="target-lang" class="form-control">
+                        <option value="en">英文</option>
+                        <option value="zh">中文</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="half">
+                    <label for="domain">领域:</label>
+                    <select id="domain" class="form-control">
+                        <option value="materials_science">材料科学</option>
+                        <option value="chemistry">化学</option>
+                        <option value="physics">物理</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <label for="source-text">源文本:</label>
+                <textarea id="source-text" class="form-control" rows="5" placeholder="输入需要翻译的文本..."></textarea>
+            </div>
+            
+            <div class="form-row center">
+                <button id="translate-btn" class="btn btn-primary">翻译</button>
+            </div>
+            
+            <div class="form-row">
+                <label for="translated-text">译文:</label>
+                <textarea id="translated-text" class="form-control" rows="5" placeholder="翻译结果将显示在这里..."></textarea>
+            </div>
+        </section>
+        
+        <!-- 参考文本部分 -->
+        <section class="card">
+            <h2>参考文本</h2>
+            
+            <div class="form-row">
+                <div class="half">
+                    <label for="reference-select">选择参考文本文件:</label>
+                    <select id="reference-select" class="form-control">
+                        <option value="">-- 请选择 --</option>
+                    </select>
+                </div>
+                <div class="half reference-actions">
+                    <button id="load-reference" class="btn">加载文件</button>
+                    <button id="upload-reference-btn" class="btn">上传文件</button>
+                </div>
+            </div>
+            
+            <!-- 参考文本输入类型选择 -->
+            <div class="form-row">
+                <div class="half">
+                    <label class="checkbox-label">
+                        <input type="radio" name="reference-source" id="reference-file-option" checked>
+                        <span>使用参考文件</span>
+                    </label>
+                </div>
+                <div class="half">
+                    <label class="checkbox-label">
+                        <input type="radio" name="reference-source" id="reference-manual-option">
+                        <span>手动输入参考文本</span>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 上传参考文本表单 -->
+            <div id="upload-form" class="upload-form" style="display: none;">
+                <h3>上传参考文本</h3>
+                
+                <div class="form-row">
+                    <label for="reference-file">选择文件:</label>
+                    <input type="file" id="reference-file" class="form-control" accept=".txt">
+                </div>
+                
+                <div class="form-row">
+                    <div class="half">
+                        <label for="ref-source-lang">源语言:</label>
+                        <select id="ref-source-lang" class="form-control">
+                            <option value="zh">中文</option>
+                            <option value="en">英文</option>
+                        </select>
+                    </div>
+                    <div class="half">
+                        <label for="ref-target-lang">目标语言:</label>
+                        <select id="ref-target-lang" class="form-control">
+                            <option value="en">英文</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <button id="submit-reference-file" class="btn btn-primary">上传</button>
+                    <button id="cancel-upload" class="btn">取消</button>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <label for="reference-text">参考译文:</label>
+                <textarea id="reference-text" class="form-control" rows="5" placeholder="输入或加载参考译文..."></textarea>
+            </div>
+        </section>
+        
+        <!-- 评估部分 -->
+        <section class="card">
+            <h2>评估结果</h2>
+            
+            <div class="form-row center">
+                <button id="evaluate-btn" class="btn btn-primary">评估翻译质量</button>
+                <button id="view-criteria-btn" class="btn">查看评分标准</button>
+            </div>
+            
+            <div class="evaluation-result">
+                <h3>评分</h3>
+                
+                <div class="scores">
+                    <div class="score-card">
+                        <div class="score-title">综合得分</div>
+                        <div class="score-value" id="overall-score">-</div>
+                    </div>
+                    
+                    <div class="score-card">
+                        <div class="score-title">BLEU分数</div>
+                        <div class="score-value" id="bleu-score">-</div>
+                    </div>
+                    
+                    <div class="score-card">
+                        <div class="score-title">术语准确性</div>
+                        <div class="score-value" id="terminology-score">-</div>
+                    </div>
+                    
+                    <div class="score-card">
+                        <div class="score-title">句式转换</div>
+                        <div class="score-value" id="sentence-score">-</div>
+                    </div>
+                    
+                    <div class="score-card">
+                        <div class="score-title">语篇连贯性</div>
+                        <div class="score-value" id="discourse-score">-</div>
+                    </div>
+                </div>
+                
+                <div class="evaluation-details">
+                    <h3>详细反馈</h3>
+                    <div id="detailed-feedback" class="feedback-text"></div>
+                    
+                    <h3>改进建议</h3>
+                    <ul id="suggestions" class="suggestions-list"></ul>
+                </div>
+                
+                <!-- 提取的术语部分 -->
+                <div id="extracted-terms-container" class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>术语匹配结果</h5>
+                        <button id="clear-terms-button" class="btn btn-sm btn-outline-secondary">清除结果</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="info-text">此区域显示术语匹配结果，用于评估翻译中的术语准确性。术语可以来自术语库或AI提取。</p>
+                        <div class="form-row mb-3">
+                            <div class="col-md-8">
+                                <select id="terminology-mode" class="form-control">
+                                    <option value="database">从术语库匹配</option>
+                                    <option value="ai">使用AI提取</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button id="apply-term-button" class="btn btn-primary w-100">应用评估模式</button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>中文</th>
+                                        <th>英文</th>
+                                        <th>匹配状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="extracted-terms-body">
+                                    <tr><td colspan="4" class="text-center">翻译评估后会显示术语匹配结果</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 术语库管理部分 -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>术语库管理</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <button id="load-terminology-btn" class="btn btn-primary">加载术语库</button>
+                                <button id="create-empty-file-btn" class="btn btn-success">创建空术语库文件</button>
+                                <div class="float-end">
+                                    <button id="init-data-btn" class="btn btn-secondary">初始化示例数据</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 添加术语表单 -->
+                        <div class="row mb-3">
+                            <div class="col-md-5">
+                                <input type="text" id="source-term" class="form-control" placeholder="中文">
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" id="target-term" class="form-control" placeholder="英文">
+                            </div>
+                            <div class="col-md-2">
+                                <button id="add-term-btn" class="btn btn-success w-100">添加术语</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 批量添加术语表单 -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="card batch-terms-container">
+                                    <div class="card-header">
+                                        <h6>批量添加术语</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <p class="small text-muted">每行输入一对术语，格式为"中文 英文"（中间用空格分隔）</p>
+                                                <textarea id="batch-terms" class="form-control" rows="5" placeholder="中文1 英文1&#10;中文2 英文2&#10;中文3 英文3"></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <button id="batch-add-btn" class="btn btn-primary" onclick="batchAddTerminology()">批量添加</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 术语库表格 -->
+                        <div id="terminology-container" class="row">
+                            <div class="col-md-12">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead id="terminology-table">
+                                            <!-- 表格内容由JavaScript动态生成 -->
+                                        </thead>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 加载中遮罩层 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loading-message">处理中...</p>
+        </div>
+    </div>
+    
+    <!-- 评分标准说明弹窗 -->
+    <div id="criteria-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>评分标准说明</h2>
+            <div id="criteria-content"></div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>材料领域翻译质量评估系统 &copy; 2025</p>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
